@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.4.0 — public packaging
+
+- Preserve the physically tested 0.4 executable; remove Test from the app title.
+- Include the generated icon, installation instructions and expanded notices.
+- Publish source and a verified OpenAL relinking companion without retail data.
+- Record MIT grants for original ps4gl and audio/TLS glue.
+- Validate extracted package contents and source archive hashes.
+
 ## 0.4 — 2026-10-18
 
 - Physical PS4 startup and gameplay reported working by the tester.

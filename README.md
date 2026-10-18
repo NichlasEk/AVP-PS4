@@ -4,8 +4,9 @@
 
 PS4 port maintained by [Nichlas Ek](https://github.com/NichlasEk).
 
-**Source preview — public PKG pending dependency-license review.**
-See [release status and remaining gates](docs/RELEASE-STATUS.md).
+**v0.4.0 — early playable PS4 port.**
+[Downloads](https://github.com/NichlasEk/AVP-PS4/releases/tag/v0.4.0) ·
+[Install / HDD / USB](docs/INSTALL.md) · [Release verification](docs/RELEASE-STATUS.md).
 
 Experimental native source port of Rebellion's Aliens versus Predator (1999),
 using the Icculus 20170505 source release. The original game and source code are
@@ -24,9 +25,9 @@ Bring your own legally obtained game data. This repository includes no retail
 game assets, disc images or original game executables. The generated project icon
 is included. This is an unofficial port, not affiliated with Rebellion.
 
-## Local test package
+## Package and game data
 
-`dist/AvP-PS4-0.4-NoData.pkg`, title ID `AVPS00001`, version `00.04`.
+`AvP-PS4-v0.4.0.pkg`, title ID `AVPS00001`, version `00.04`.
 This package contains the engine, icon and runtime libraries, not commercial game
 data. Earlier 0.1/0.2 private packages do contain game data; do not publish those.
 The accompanying manifest records every packaged file and its SHA-256.
@@ -158,10 +159,9 @@ noncommercial source license is preserved in [LICENSE](LICENSE); this project
 must not be represented as MIT/GPL-licensed or used commercially.
 
 Do not redistribute your ISO, imported data, compatibility language text or the
-older private test packages. A data-free PKG alone does not complete the release
-audit: bundled libraries retain their own license obligations, including source
-and relinking requirements for statically linked OpenAL. Public binary release
-preparation is tracked separately from this source repository.
+older private test packages. Retain the source/relink companion and all notices
+when redistributing the binary. Independent libraries retain their own licenses;
+see [third-party notices](docs/THIRD-PARTY.md) and [relinking](docs/RELINKING.md).
 
 Sources: [Icculus AvP](https://icculus.org/avp/),
 [source archive](https://icculus.org/avp/files/avp-20170505-a1.tar.gz),

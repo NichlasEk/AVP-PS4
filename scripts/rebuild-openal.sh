@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+kit=$(cd -- "$(dirname -- "$0")" && pwd)
+cmake -S "$kit/openal-soft-1.23.1" -B "$kit/openal-build" -G Ninja \
+  -DCMAKE_TOOLCHAIN_FILE="$kit/openal-toolchain.cmake" \
+  -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_DISABLE_FIND_PACKAGE_PkgConfig=TRUE -DALSOFT_RTKIT=OFF \
+  -DLIBTYPE=STATIC -DALSOFT_EAX=OFF -DALSOFT_UTILS=OFF -DALSOFT_EXAMPLES=OFF \
+  -DALSOFT_TESTS=OFF -DALSOFT_INSTALL=OFF -DALSOFT_EMBED_HRTF_DATA=OFF \
+  -DALSOFT_BACKEND_PIPEWIRE=OFF -DALSOFT_BACKEND_PULSEAUDIO=OFF \
+  -DALSOFT_BACKEND_OSS=OFF -DALSOFT_BACKEND_SNDIO=OFF \
+  -DALSOFT_BACKEND_SOLARIS=OFF -DALSOFT_BACKEND_JACK=OFF \
+  -DALSOFT_BACKEND_SDL2=OFF -DALSOFT_BACKEND_WAVE=OFF
+cmake --build "$kit/openal-build" -j"${BUILD_JOBS:-8}"
+python3 "$kit/relink.py" --openal "$kit/openal-build/libopenal.a"

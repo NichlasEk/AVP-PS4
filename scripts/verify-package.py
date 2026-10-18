@@ -29,6 +29,18 @@ for name,digest in manifest['files'].items():
     with (dest/name).open('rb') as stream:
         actual=hashlib.file_digest(stream,'sha256').hexdigest()
     if actual != digest: raise SystemExit(f'Readback mismatch: {name}')
+actual_files={p.relative_to(dest).as_posix() for p in dest.rglob('*') if p.is_file()}
+expected_files=set(manifest['files'])
+unexpected=actual_files-expected_files-{'sce_sys/keystone'}
+if unexpected or expected_files-actual_files:
+    raise SystemExit(f'Payload set mismatch: extra={unexpected}, missing={expected_files-actual_files}')
+if not manifest['contains_game_data']:
+    fixed={'eboot.bin','scummvm-controller-only.txt','INSTALL.txt',
+           'sce_sys/param.sfo','sce_sys/icon0.png','sce_sys/keystone',
+           'sce_sys/about/right.sprx','sce_module/libc.prx','sce_module/libSceFios2.prx'}
+    for name in actual_files:
+        if name not in fixed and not (name.startswith('licenses/') and Path(name).suffix in {'.txt','.md'}):
+            raise SystemExit(f'Unapproved no-data payload: {name}')
 result={'payload_files_verified':len(manifest['files']),'extracted':str(dest),
         'package_sha256':manifest['sha256'],'physical_ps4_tested':False}
 (root/'artifacts/package-readback.json').write_text(json.dumps(result,indent=2)+'\n')
