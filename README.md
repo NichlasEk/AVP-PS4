@@ -4,6 +4,9 @@
 
 PS4 port maintained by [Nichlas Ek](https://github.com/NichlasEk).
 
+**Source preview — public PKG pending dependency-license review.**
+See [release status and remaining gates](docs/RELEASE-STATUS.md).
+
 Experimental native source port of Rebellion's Aliens versus Predator (1999),
 using the Icculus 20170505 source release. The original game and source code are
 copyright Rebellion Developments 1999–2000. Noncommercial use only; see LICENSE.
