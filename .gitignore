@@ -1,0 +1,13 @@
+/media/
+/build/
+/dist/
+/artifacts/
+/engine/
+*.iso
+*.pkg
+__pycache__/
+/HANDOFF.md
+.env
+.env.*
+*.pem
+*.key

@@ -1,0 +1,5 @@
+Generated using the built-in image_gen tool; opaque source copied into this project.
+Source asset: assets/icon-generated-v02.png
+Packaging: resize to 512x512, strip metadata, RGB PNG24 (no alpha).
+
+Use case: stylized-concept. Asset type: square PS4 home-screen game icon for a private Aliens versus Predator (1999) source port. Primary request: spectacular cinematic painted cover art showing a glossy black elongated Xenomorph head facing an armored Predator bio-mask in a tense face-off. Dark industrial sci-fi atmosphere, acid-green rim light contrasting cold steel-blue highlights, restrained red Predator targeting laser, strong silhouettes and excellent readability at small icon size. Composition: close-up faces occupy upper two thirds, balanced, not a collage; lower third features large sharp metallic text exactly "AVP". Only this text, no subtitle, no PlayStation branding, no watermark. Full-bleed square opaque image, crisp premium game-cover finish, no rounded corners or external border.

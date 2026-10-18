@@ -1,0 +1,62 @@
+--- a/src/win95/huffman.cpp
++++ b/src/win95/huffman.cpp
+@@ -392,7 +392,7 @@
+ static int DecodeTable[1<<MAX_DEPTH];
+ 
+ static void MakeHuffmanDecodeTable(const int *depth, int depthmax, const unsigned char *list);
+-static int HuffmanDecode(unsigned char *dest, const int *source, const int *table, int length);
++static int HuffmanDecode(unsigned char *dest, const unsigned char *source, int sourceLength, const int *table, int length);
+ 
+ 
+ extern char *HuffmanDecompress(const HuffmanPackage *inpackage)
+@@ -405,7 +405,7 @@
+ 	uncompressedData = (unsigned char*)AllocateMemory(inpackage->UncompressedDataSize+16);
+ 	if (uncompressedData)
+ 	{
+-		HuffmanDecode(uncompressedData,(int*)(inpackage+1),DecodeTable,inpackage->UncompressedDataSize);
++		HuffmanDecode(uncompressedData,(const unsigned char*)(inpackage+1),inpackage->CompressedDataSize,DecodeTable,inpackage->UncompressedDataSize);
+ 	}
+ 
+ 	return (char*)uncompressedData;	
+@@ -469,8 +469,9 @@
+ 
+ #define EDXMASK ((((1 << (MAX_DEPTH + 1)) - 1) ^ 1) ^ -1)
+ 
+-static int HuffmanDecode(unsigned char *dest, const int *source, const int *table, int length)
++static int HuffmanDecode(unsigned char *dest, const unsigned char *source, int sourceLength, const int *table, int length)
+ {
++    const unsigned char *sourceEnd = source + sourceLength;
+     unsigned char          *start;
+     int                    available, reserve, fill, wid;
+     unsigned int           bits=0, resbits;
+@@ -494,7 +495,12 @@
+             {
+             	bits   = (bits >> reserve) | (resbits << (32 - reserve));
+ 			}
+-            resbits    = *source++;
++            // The bit reservoir looks ahead past the last encoded word.
++            // Zero-extend that lookahead instead of reading outside the file.
++            resbits = 0;
++            size_t left = (size_t)(sourceEnd-source);
++            size_t take = left < sizeof(resbits) ? left : sizeof(resbits);
++            if (take) { memcpy(&resbits, source, take); source += take; }
+             reserve    = 32;
+         }
+         bits           = (bits >> fill) | (resbits << (32 - fill));
+--- a/src/avp/inventry.c
++++ b/src/avp/inventry.c
+@@ -198,12 +198,13 @@
+ 		TEMPLATE_AMMO_DATA *templateAmmoPtr;
+ 
+ 		wdPtr = &playerStatusPtr->WeaponSlot[--slot];
++		if (wdPtr->WeaponIDNumber == NULL_WEAPON) continue;
+ 	    twPtr = &TemplateWeapon[wdPtr->WeaponIDNumber];
+-		templateAmmoPtr = &TemplateAmmo[twPtr->PrimaryAmmoID];
+ 
+ 		if ((wdPtr->PrimaryRoundsRemaining==0)
+ 			&&(wdPtr->PrimaryMagazinesRemaining>0)
+ 			&&(twPtr->PrimaryAmmoID!=AMMO_NONE)) {
++			templateAmmoPtr = &TemplateAmmo[twPtr->PrimaryAmmoID];
+ 			wdPtr->PrimaryRoundsRemaining = templateAmmoPtr->AmmoPerMagazine;
+ 			wdPtr->PrimaryMagazinesRemaining--;
+ 		}

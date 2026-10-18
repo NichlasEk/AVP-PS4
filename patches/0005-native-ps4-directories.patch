@@ -1,0 +1,38 @@
+--- a/src/files.c
++++ b/src/files.c
+@@ -16,8 +16,8 @@
+ #include "fixer.h"
+ #include "files.h"
+ 
+-static char *local_dir;
+-static char *global_dir;
++static const char *local_dir;
++static const char *global_dir;
+ 
+ /*
+ Sets the local and global directories used by the other functions.
+@@ -592,6 +592,16 @@
+ {
+ 	extern char *SecondTex_Directory;
+ 	extern char *SecondSoundDir;
++
++#ifdef __ORBIS__
++	/* Bootstrap already validated one complete HDD/USB root with native reads.
++	 * Do not rediscover it through desktop HOME/PATH/access/stat/unlink calls. */
++	extern int avp_ps4_directories(const char **local, const char **global);
++	(void)argv0;
++	SecondTex_Directory = "graphics/";
++	SecondSoundDir = "sound/";
++	if (avp_ps4_directories(&local_dir, &global_dir) != 0) exit(EXIT_FAILURE);
++#else
+ 	
+ 	char tmppath[PATH_MAX];
+ 	char *homedir, *gamedir, *localdir, *tmp;
+@@ -706,6 +716,7 @@
+ 	
+ 	/* delete some log files */
+ 	DeleteGameFile("dx_error.log");
++#endif
+ }
+ 
+ #ifdef FILES_DRIVER

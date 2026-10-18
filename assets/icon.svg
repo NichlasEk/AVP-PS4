@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+<rect width="512" height="512" fill="#07120e"/>
+<path d="M40 40H472V472H40Z M40 128H472 M40 384H472" fill="none" stroke="#315643" stroke-width="3"/>
+<text x="256" y="104" text-anchor="middle" fill="#8ea69a" font-family="DejaVu Sans" font-size="26">ALIENS VERSUS PREDATOR</text>
+<text x="256" y="292" text-anchor="middle" fill="#9bedbc" font-family="DejaVu Sans" font-weight="bold" font-size="104">AvP</text>
+<text x="256" y="350" text-anchor="middle" fill="#8ea69a" font-family="DejaVu Sans" font-size="24">OPENORBIS</text>
+<text x="256" y="436" text-anchor="middle" fill="#8ea69a" font-family="DejaVu Sans" font-size="24">EXPERIMENTAL 0.1</text>
+</svg>

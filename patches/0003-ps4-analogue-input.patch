@@ -1,0 +1,40 @@
+--- a/src/avp/win95/usr_io.c
++++ b/src/avp/win95/usr_io.c
+@@ -1253,7 +1253,11 @@
+ 
+ 
+ 
++#ifdef __PS4__
++	if (0) /* PS4 pad rates are applied below, independent of mouse settings. */
++#else
+ 	if (GotMouse)
++#endif
+ 	{
+ 		extern int MouseVelX;
+ 		extern int MouseVelY;
+@@ -1350,7 +1354,11 @@
+ 	}
+ 	
+ 	/* KJL 18:27:34 04/29/97 - joystick control */
++#ifdef __PS4__
++	if (0) /* Do not apply the legacy single-stick turn mapping as well. */
++#else
+ 	if (GotJoystick)
++#endif
+ 	{
+ 		#define JOYSTICK_DEAD_ZONE 12000
+ 		extern JOYINFOEX JoystickData;
+@@ -1596,6 +1604,13 @@
+ 		#endif
+ 	}
+ 
++#ifdef __PS4__
++	{
++		extern void ps4_apply_pad(PLAYER_STATUS *);
++		ps4_apply_pad(playerStatusPtr);
++	}
++#endif
++
+ 	/* KJL 10:55:22 10/9/97 - HUD transparency */
+ 	#if 0
+ 	{

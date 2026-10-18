@@ -1,0 +1,85 @@
+--- a/src/main2.c
++++ b/src/main2.c
+@@ -4,6 +4,12 @@
+ #include <ctype.h>
+ 
+ #include "SDL.h"
++#ifdef __ORBIS__
++extern void avp_boot_log(const char *);
++#define AVP_BOOT(s) avp_boot_log(s)
++#else
++#define AVP_BOOT(s) ((void)0)
++#endif
+ #include "oglfunc.h"
+ 
+ #if !defined(_MSC_VER)
+@@ -443,6 +449,7 @@
+ 	emscripten_set_main_loop(main_loop, 0, 0);
+ #endif
+ 
++	AVP_BOOT("START SDL_Init video");
+ 	if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+ 		fprintf(stderr, "SDL Init failed: %s\n", SDL_GetError());
+ 		exit(EXIT_FAILURE);
+@@ -513,6 +520,7 @@
+ 
+ 	LoadDeviceAndVideoModePreferences();
+ 
++	AVP_BOOT("PASS SDL video; START joystick");
+ 	if (WantJoystick) {
+ 		SDL_InitSubSystem(SDL_INIT_JOYSTICK);
+ 		
+@@ -1655,6 +1663,7 @@
+          
+ int main(int argc, char *argv[])
+ {			
++	AVP_BOOT("ENGINE entered; START getopt");
+ #if !defined(_MSC_VER)
+ 	int c;
+ 	
+@@ -1697,7 +1706,9 @@
+ 	}
+ #endif
+ 
++	AVP_BOOT("PASS getopt; START directories");
+ 	InitGameDirectories(argv[0]);
++	AVP_BOOT("PASS directories; START InitSDL");
+ 	
+ 	if (InitSDL() == -1) {
+ 		fprintf(stderr, "Could not find a sutable resolution!\n");
+@@ -1705,6 +1716,7 @@
+ 		exit(EXIT_FAILURE);
+ 	}
+ 		
++	AVP_BOOT("PASS InitSDL; START game initialization");
+ 	LoadCDTrackList();
+ 	
+ 	SetFastRandom();
+@@ -1720,6 +1732,7 @@
+ 
+ 	WindowWidth = VideoModeList[CurrentVideoMode].w;
+ 	WindowHeight = VideoModeList[CurrentVideoMode].h;
++	AVP_BOOT("START GL video mode");
+ 	SetOGLVideoMode(0, 0);
+ 	SetSoftVideoMode(640, 480, 16);
+ 	
+@@ -1733,9 +1746,11 @@
+ 	
+ 	LoadKeyConfiguration();
+ 	
++	AVP_BOOT("PASS graphics; START sound");
+ 	SoundSys_Start();
+ 	if (WantCDRom) CDDA_Start();
+ 	
++	AVP_BOOT("PASS sound; START language");
+ 	InitTextStrings();
+ 	
+ 	BuildMultiplayerLevelNameArray();
+@@ -1758,6 +1773,7 @@
+ 	SetLevelToLoad(AVP_ENVIRONMENT_INVASION);
+ #endif
+ 
++	AVP_BOOT("PASS engine initialization; START menu loop");
+ 	main_loop_state = 1;
+ 	while (main_loop_state) main_loop();
+ 	SoundSys_End();

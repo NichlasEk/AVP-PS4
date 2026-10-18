@@ -1,0 +1,3 @@
+AVP PS4 uses DualShock controls. Disable the shared SDL backend's optional USB
+mouse initialization while diagnosing native-console startup. The backend uses
+this exact marker filename; it is not a ScummVM game dependency.

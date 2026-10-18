@@ -1,0 +1,350 @@
+--- a/src/main2.c
++++ b/src/main2.c
+@@ -805,7 +805,14 @@
+ 		SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 5);
+ 		SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 5);
+ 		SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 5);
++#ifdef __ORBIS__
++		/* Depth is supplied by the Vulkan display owner. */
++		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 0);
++		WindowWidth = 1280;
++		WindowHeight = 720;
++#else
+ 		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
++#endif
+ 		SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+ 
+ 		load_opengl_library(opengl_library);
+@@ -857,16 +864,17 @@
+ 		FullscreenTextureHeight = 480;
+ 		pglTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, FullscreenTextureWidth, FullscreenTextureHeight, 0, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, NULL);
+ 
++#ifndef __ORBIS__
+ 		// this should be deleted and rebuilt when the screen size changes
+ 		GLint maxRenderbufferSize;
+ 		GLint maxTextureSize;
+-		GLint maxViewportDims;
++		GLint maxViewportDims[2];
+ 		GLint maxRenderSize;
+ 
+ 		pglGetIntegerv(GL_MAX_RENDERBUFFER_SIZE, &maxRenderbufferSize);
+ 		pglGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxTextureSize);
+-		pglGetIntegerv(GL_MAX_VIEWPORT_DIMS, &maxViewportDims);
+-		printf("DEBUG:%d,%d,%d\n", maxRenderbufferSize, maxTextureSize, maxViewportDims);
++		pglGetIntegerv(GL_MAX_VIEWPORT_DIMS, maxViewportDims);
++		printf("DEBUG:%d,%d,%d\n", maxRenderbufferSize, maxTextureSize, maxViewportDims[0]);
+ 
+ 		FramebufferTextureWidth = Width * 2;
+ 		FramebufferTextureHeight = Height * 2;
+@@ -876,8 +884,11 @@
+ 		if (maxRenderSize > maxTextureSize) {
+ 			maxRenderSize = maxTextureSize;
+ 		}
+-		if (maxRenderSize > maxViewportDims) {
+-			maxRenderSize = maxViewportDims;
++		if (maxRenderSize > maxViewportDims[0]) {
++			maxRenderSize = maxViewportDims[0];
++		}
++		if (maxRenderSize > maxViewportDims[1]) {
++			maxRenderSize = maxViewportDims[1];
+ 		}
+ 
+ 		if (FramebufferTextureWidth > maxRenderSize) {
+@@ -905,12 +916,14 @@
+ 		pglBindRenderbuffer(GL_RENDERBUFFER, FramebufferDepthObject);
+ 		pglRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, FramebufferTextureWidth, FramebufferTextureHeight);
+ 		pglFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, FramebufferDepthObject);
++#endif
+ 
+ 		pglGenBuffers(1, &FullscreenArrayBuffer);
+ 		pglGenBuffers(1, &FullscreenElementArrayBuffer);
+ 
+ 		check_for_errors();
+ 
++#ifndef __ORBIS__
+ 		status = pglCheckFramebufferStatus(GL_FRAMEBUFFER);
+ 		if (status != GL_FRAMEBUFFER_COMPLETE) {
+ 			fprintf(stderr, "Incomplete framebuffer, status:%04x\n", status);
+@@ -918,6 +931,7 @@
+ 
+ 		pglBindFramebuffer(GL_FRAMEBUFFER, 0);
+ 		pglBindRenderbuffer(GL_RENDERBUFFER, 0);
++#endif
+ 	}
+ 
+ 	SDL_GetWindowSize(window, &Width, &Height);
+@@ -939,7 +953,9 @@
+ 	pglEnable(GL_DEPTH_TEST);
+ 	pglDepthFunc(GL_LEQUAL);
+ 	pglDepthMask(GL_TRUE);
++#ifndef __ORBIS__
+ 	pglDepthRange(0.0, 1.0);
++#endif
+ 
+ 	pglDisable(GL_CULL_FACE);
+ 	
+@@ -1280,6 +1296,10 @@
+ 	KeyboardInput[key] = press;
+ }
+ 
++#ifdef __ORBIS__
++#include "input.inc"
++#endif
++
+ void CheckForWindowsMessages()
+ {
+ 	SDL_Event event;
+@@ -1453,6 +1473,9 @@
+ 	// enabling relative mouse mode moves the mouse
+ 	SDL_GetRelativeMouseState(NULL, NULL);
+ 
++#ifdef __ORBIS__
++	ps4_poll_pad();
++#endif
+ 	if (GotPrintScn) {
+ 		GotPrintScn = 0;
+ 		
+@@ -1462,6 +1485,10 @@
+         
+ void InGameFlipBuffers()
+ {
++#ifdef __ORBIS__
++	SDL_GL_SwapWindow(window);
++	pglClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
++#else
+ #if !defined(NDEBUG)
+ 	check_for_errors();
+ #endif
+@@ -1483,12 +1510,15 @@
+ 	pglBindRenderbuffer(GL_RENDERBUFFER, FramebufferDepthObject);
+ 	pglViewport(0, 0, FramebufferTextureWidth, FramebufferTextureHeight);
+ 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
++#endif
+ }
+ 
+ void FlipBuffers()
+ {
++#ifndef __ORBIS__
+ 	pglBindFramebuffer(GL_FRAMEBUFFER, 0);
+ 	pglBindRenderbuffer(GL_RENDERBUFFER, 0);
++#endif
+ 
+ 	pglViewport(0, 0, DrawableWidth, DrawableHeight);
+ 	pglClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+@@ -1729,6 +1759,10 @@
+ #endif
+ 
+ 	main_loop_state = 1;
++	while (main_loop_state) main_loop();
++	SoundSys_End();
++	ExitWindowsSystem();
++	SDL_Quit();
+ 	return 0;
+ 
+ #if 0
+--- a/src/oglfunc.c
++++ b/src/oglfunc.c
+@@ -164,7 +164,9 @@
+ 	LoadOGLProc(avpPFNGLDELETETEXTURESPROC, glDeleteTextures);
+ 	LoadOGLProc(avpPFNGLDEPTHFUNCPROC, glDepthFunc);
+ 	LoadOGLProc(avpPFNGLDEPTHMASKPROC, glDepthMask);
++#ifndef __ORBIS__
+ 	LoadOGLProc2(avpPFNGLDEPTHRANGEPROC, glDepthRange, glDepthRangef);
++#endif
+ 	LoadOGLProc(avpPFNGLDISABLEPROC, glDisable);
+ 	LoadOGLProc(avpPFNGLDRAWELEMENTSPROC, glDrawElements);
+ 	LoadOGLProc(avpPFNGLENABLEPROC, glEnable);
+@@ -174,13 +176,19 @@
+ 	LoadOGLProc(avpPFNGLGETFLOATVPROC, glGetFloatv);
+ 	LoadOGLProc(avpPFNGLGETINTEGERVPROC, glGetIntegerv);
+ 	LoadOGLProc(avpPFNGLGETSTRINGPROC, glGetString);
++#ifndef __ORBIS__
+ 	LoadOGLProc(avpPFNGLGETTEXPARAMETERFVPROC, glGetTexParameterfv);
++#endif
+ 	LoadOGLProc(avpPFNGLHINTPROC, glHint);
+ 	LoadOGLProc(avpPFNGLPIXELSTOREIPROC, glPixelStorei);
++#ifndef __ORBIS__
+ 	LoadOGLProc(avpPFNGLPOLYGONOFFSETPROC, glPolygonOffset);
++#endif
+ 	LoadOGLProc(avpPFNGLREADPIXELSPROC, glReadPixels);
+ 	LoadOGLProc(avpPFNGLTEXIMAGE2DPROC, glTexImage2D);
++#ifndef __ORBIS__
+ 	LoadOGLProc(avpPFNGLTEXPARAMETERFPROC, glTexParameterf);
++#endif
+ 	LoadOGLProc(avpPFNGLTEXPARAMETERIPROC, glTexParameteri);
+ 	LoadOGLProc(avpPFNGLTEXSUBIMAGE2DPROC, glTexSubImage2D);
+ 	LoadOGLProc(avpPFNGLVIEWPORTPROC, glViewport);
+@@ -208,7 +216,9 @@
+ 	LoadOGLProc(avpPFNGLGETUNIFORMLOCATIONPROC, glGetUniformLocation);
+ 	LoadOGLProc(avpPFNGLLINKPROGRAMPROC, glLinkProgram);
+ 	LoadOGLProc(avpPFNGLSHADERSOURCEPROC, glShaderSource);
++#ifndef __ORBIS__
+ 	LoadOGLProc(avpPFNGLVALIDATEPROGRAMPROC, glValidateProgram);
++#endif
+ 	LoadOGLProc(avpPFNGLVERTEXATTRIBPOINTERPROC, glVertexAttribPointer);
+ 	LoadOGLProc(avpPFNGLUNIFORM1IPROC, glUniform1i);
+ 	LoadOGLProc(avpPFNGLUNIFORMMATRIX4FVPROC, glUniformMatrix4fv);
+--- a/src/opengl.c
++++ b/src/opengl.c
+@@ -502,6 +502,11 @@
+ }
+ 
+ static int ValidateProgram(GLuint program) {
++#ifdef __ORBIS__
++	GLint linked = 0;
++	pglGetProgramiv(program, GL_LINK_STATUS, &linked);
++	return linked;
++#else
+ 	GLint infoLogLength;
+ 	GLchar* infoLog;
+ 	GLint compileStatus;
+@@ -525,6 +530,7 @@
+ 
+ 	pglGetProgramiv(program, GL_VALIDATE_STATUS, &compileStatus);
+ 	return compileStatus;
++#endif
+ }
+ 
+ static int CreateProgram(GLuint* pprogram, const GLchar* vertexShaderSource, const GLchar* fragmentShaderSource) {
+@@ -791,8 +797,10 @@
+ 
+ 	pglVertexAttribPointer(OPENGL_VERTEX_ATTRIB_INDEX, 4, GL_FLOAT, GL_FALSE, sizeof(varr[0]), (const GLvoid*) 0);
+ 	pglVertexAttribPointer(OPENGL_TEXCOORD_ATTRIB_INDEX, 2, GL_FLOAT, GL_FALSE, sizeof(varr[0]), (const GLvoid*) 16);
++#ifndef __ORBIS__
+ 	pglVertexAttribPointer(OPENGL_COLOR0_ATTRIB_INDEX, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(varr[0]), (const GLvoid*) 24);
+ 	pglVertexAttribPointer(OPENGL_COLOR1_ATTRIB_INDEX, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(varr[0]), (const GLvoid*) 28);
++#endif
+ 
+ 	CurrShaderProgram = AVP_SHADER_PROGRAM_MAX;
+ 	SelectProgram(AVP_SHADER_PROGRAM_DEFAULT);
+@@ -810,7 +818,27 @@
+ {
+ 	if (tarrc) {
+ 		// not optimal but required by WebGL
++#ifdef __ORBIS__
++		/* The Vulkan GL bridge accepts floating-point vertex attributes. */
++		static GLfloat packed[TA_MAXVERTICES][14];
++		for (int v=0; v<varrc; ++v) {
++			memcpy(packed[v], varr[v].v, 4*sizeof(GLfloat));
++			memcpy(packed[v]+4, varr[v].t, 2*sizeof(GLfloat));
++			for (int c=0; c<4; ++c) {
++				packed[v][6+c]=varr[v].c[c]/255.0f;
++				packed[v][10+c]=varr[v].s[c]/255.0f;
++			}
++		}
++		pglBindBuffer(GL_ARRAY_BUFFER, ArrayBuffer);
++		pglBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ElementArrayBuffer);
++		pglBufferData(GL_ARRAY_BUFFER, varrc * sizeof(packed[0]), packed, GL_STREAM_DRAW);
++		pglVertexAttribPointer(OPENGL_VERTEX_ATTRIB_INDEX,4,GL_FLOAT,GL_FALSE,sizeof(packed[0]),(const GLvoid*)0);
++		pglVertexAttribPointer(OPENGL_TEXCOORD_ATTRIB_INDEX,2,GL_FLOAT,GL_FALSE,sizeof(packed[0]),(const GLvoid*)16);
++		pglVertexAttribPointer(OPENGL_COLOR0_ATTRIB_INDEX,4,GL_FLOAT,GL_FALSE,sizeof(packed[0]),(const GLvoid*)24);
++		pglVertexAttribPointer(OPENGL_COLOR1_ATTRIB_INDEX,4,GL_FLOAT,GL_FALSE,sizeof(packed[0]),(const GLvoid*)40);
++#else
+ 		pglBufferData(GL_ARRAY_BUFFER, varrc * sizeof(varr[0]), varr, GL_STREAM_DRAW);
++#endif
+ 		pglBufferData(GL_ELEMENT_ARRAY_BUFFER, tarrc * sizeof(tarr[0]), tarr, GL_STREAM_DRAW);
+ 
+ 		pglDrawElements(GL_TRIANGLES, tarrc*3, GL_UNSIGNED_SHORT, (const GLvoid*) 0);
+@@ -1134,7 +1162,9 @@
+ 	
+ 	static GLfloat factor = 0.0f;
+ 	static GLfloat units = -0.09375f;
++#ifndef __ORBIS__
+ 	pglPolygonOffset(factor, units);
++#endif
+ }
+ 
+ void D3D_DecalSystem_End()
+--- a/src/openal.c
++++ b/src/openal.c
+@@ -38,6 +38,12 @@
+ SOUNDSAMPLEDATA GameSounds[SID_MAXIMUM];
+ 
+ static ALCdevice *AvpSoundDevice;
++#ifdef __ORBIS__
++extern ALCdevice *avp_ps4_open_audio(void);
++extern ALCcontext *avp_ps4_audio_context(ALCdevice *device);
++extern int avp_ps4_start_audio(ALCdevice *device);
++extern void avp_ps4_stop_audio(void);
++#endif
+ static ALvoid *AvpSoundContext;
+ static int AvpFrequency = 44100;
+ 
+@@ -203,12 +209,20 @@
+ 	attrlist[3] = AL_FALSE;
+ 	attrlist[4] = 0;
+ 
++#ifdef __ORBIS__
++	AvpSoundDevice = avp_ps4_open_audio();
++#else
+ 	AvpSoundDevice = alcOpenDevice(NULL);
++#endif
+ 	if (AvpSoundDevice == NULL) {
+ 		return 0;
+ 	}
+ 
++#ifdef __ORBIS__
++	AvpSoundContext = avp_ps4_audio_context(AvpSoundDevice);
++#else
+ 	AvpSoundContext = alcCreateContext(AvpSoundDevice, attrlist);
++#endif
+ 	if (AvpSoundContext == NULL) {
+ 		/* TODO: destroy sound device */
+ 		return 0;
+@@ -283,6 +297,9 @@
+ 		}
+ 	}
+ 	
++#ifdef __ORBIS__
++	if (!avp_ps4_start_audio(AvpSoundDevice)) return 0;
++#endif
+ 	SoundActivated = 1;
+ 	
+ 	return 1;
+@@ -290,6 +307,15 @@
+ 
+ void PlatEndSoundSys()
+ {
++#ifdef __ORBIS__
++	avp_ps4_stop_audio();
++	alcMakeContextCurrent(NULL);
++	if (AvpSoundContext) alcDestroyContext(AvpSoundContext);
++	if (AvpSoundDevice) alcCloseDevice(AvpSoundDevice);
++	AvpSoundContext = NULL;
++	AvpSoundDevice = NULL;
++	SoundActivated = 0;
++#endif
+ /* TODO - free everything */
+ 	fprintf(stderr, "OPENAL: PlatEndSoundSys()\n");
+ }
+--- a/src/avp/language.c
++++ b/src/avp/language.c
+@@ -35,6 +35,7 @@
+ 	char *filename;
+ 	char *textPtr;
+ 	int i;
++	for (i=0; i<MAX_NO_OF_TEXTSTRINGS; ++i) TextStringPtr[i] = EmptyString;
+ 
+ 	/* language select here! */
+ 	GLOBALASSERT(AvP.Language>=0);
+@@ -125,7 +126,7 @@
+ 
+ 	LOCALASSERT(stringID<MAX_NO_OF_TEXTSTRINGS);
+ 	if (stringID < MAX_NO_OF_TEXTSTRINGS) {
+-		return TextStringPtr[stringID];
++		return TextStringPtr[stringID] ? TextStringPtr[stringID] : EmptyString;
+ 	}
+ 	return EmptyString;
+ }
+--- a/src/avp/win95/frontend/avp_menus.c
++++ b/src/avp/win95/frontend/avp_menus.c
+@@ -993,6 +993,9 @@
+ 			KeyboardEntryQueue_Clear();
+ 			AvPMenus.MenuElements->c.TextPtr = UserProfilePtr->Name;
+ 			UserProfilePtr->Name[0] = 0;
++#ifdef __ORBIS__
++			strcpy(UserProfilePtr->Name, "Player");
++#endif
+ 			AvPMenus.WidthLeftForText = 0; //will be calculated properly when menus are drawn
+ 			break;
+ 		}

@@ -1,0 +1,45 @@
+cmake_minimum_required(VERSION 3.20)
+project(avp_ps4 LANGUAGES C CXX)
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_CXX_STANDARD 11)
+set(ENGINE "${CMAKE_CURRENT_SOURCE_DIR}/engine")
+# Keep the upstream's explicit, reviewed translation-unit list.
+file(STRINGS "${ENGINE}/CMakeLists.txt" source_lines REGEX "^LIST\\(APPEND source src/")
+foreach(line IN LISTS source_lines)
+  string(REGEX REPLACE "LIST\\(APPEND source ([^)]+)\\)" "\\1" relative "${line}")
+  list(APPEND sources "${ENGINE}/${relative}")
+  get_filename_component(directory "${ENGINE}/${relative}" DIRECTORY)
+  list(APPEND includes "${directory}")
+endforeach()
+list(APPEND sources "${ENGINE}/src/files.c" "${ENGINE}/src/winapi.c" "${ENGINE}/src/main2.c")
+add_executable(avp ${sources})
+target_include_directories(avp PRIVATE ${includes} "${ENGINE}/src/include")
+target_include_directories(avp PRIVATE platform/ps4)
+target_compile_options(avp PRIVATE -fcommon -Wno-error=incompatible-pointer-types -Wno-error=implicit-function-declaration)
+if(AVP_PS4)
+  set(SCUMMVM "${CMAKE_CURRENT_SOURCE_DIR}/../ScummVM-PS4" CACHE PATH "Existing PS4 graphics dependency checkout")
+  set(DOOM3 "${CMAKE_CURRENT_SOURCE_DIR}/../Doom3-Ps4" CACHE PATH "Existing PS4 OpenAL dependency checkout")
+  set(NATIVE "${SCUMMVM}/.tools/opengnm-stack")
+  target_sources(avp PRIVATE platform/ps4/main.c)
+  target_include_directories(avp PRIVATE platform/ps4)
+  target_sources(avp PRIVATE "${DOOM3}/platform/ps4/tls_destructors.cpp")
+  target_sources(avp PRIVATE platform/ps4/audio.cpp "${DOOM3}/platform/ps4/audio.cpp")
+  target_include_directories(avp PRIVATE "${DOOM3}/platform/ps4" "${DOOM3}/thirdparty/openal-headers")
+  foreach(unit ps4gl ps4gl-vulkan ps4gl-glsl ps4gl-frame ps4gl-display)
+    target_sources(avp PRIVATE "${SCUMMVM}/compat/ps4gl/${unit}.c")
+  endforeach()
+  target_include_directories(avp PRIVATE "${OO_PS4_TOOLCHAIN}/include/SDL2"
+    "${DOOM3}/thirdparty/openal-headers/AL" "${SCUMMVM}/compat/ps4gl"
+    "${NATIVE}/Vulkan-Headers/include" "${NATIVE}/vulkan-ps4/include" "${SCUMMVM}/.tools/glslang")
+  target_link_options(avp PRIVATE -Wl,--wrap=main,--wrap=malloc,--wrap=calloc,--wrap=realloc,--wrap=free)
+  target_link_libraries(avp PRIVATE "${SCUMMVM}/build/ps4-sdlgl/libSDL2.a"
+    "${DOOM3}/build/ps4-openal-release/libopenal.a"
+    -Wl,--whole-archive "${NATIVE}/vulkan-ps4/libvulkan_ps4.a" "${NATIVE}/opengnm/libopengnm.a" -Wl,--no-whole-archive
+    "${SCUMMVM}/build/scummvm-vulkan/bridge/libpsbc-scummvm.a"
+    "${SCUMMVM}/build/glslang-orbis/libglslang-ps4.a"
+    SceGnmDriver SceVideoOut SceUserService SceAudioOut ScePad SceMouse SceSysmodule SceNet)
+else()
+  find_package(PkgConfig REQUIRED)
+  pkg_check_modules(DEPS REQUIRED IMPORTED_TARGET sdl2 openal gl)
+  target_link_libraries(avp PRIVATE PkgConfig::DEPS)
+endif()
